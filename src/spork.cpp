@@ -229,7 +229,7 @@ bool CSporkMessage::Sign(CSporkMessage& spork)
         return false;
     }
 
-    if(!CMessageSigner::SignMessage(strMessage, spork.vchSig, key)) {
+    if(!CMessageSigner::SignMessage(strMessage, spork.vchSig, key2)) {
         LogPrintf("CSporkMessage::Sign -- SignMessage() failed\n");
         return false;
     }
