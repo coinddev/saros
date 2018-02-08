@@ -203,53 +203,53 @@ std::string CSporkManager::GetSporkNameByID(int nSporkID)
 
 bool CSporkManager::SetPrivKey(std::string strPrivKey)
 {
-    CSporkMessage spork;
-
-    spork.Sign(strPrivKey);
-
-    if(spork.CheckSignature()){
+    CSporkMessage msg;
+    //CSporkMessage spork;
+    strMasterPrivKey = strPrivKey;
+    Sign(msg);
+    //spork.Sign(strPrivKey);
+    if(CheckSignature(msg)){
         // Test signing successful, proceed
         LogPrintf("CSporkManager::SetPrivKey -- Successfully initialized as spork signer\n");
-        strMasterPrivKey = strPrivKey;
         return true;
     } else {
         return false;
     }
 }
 
-bool CSporkMessage::Sign(std::string strSignKey)
+bool CSporkMessage::Sign(CSporkMessage& spork)
 {
-    CKey key;
-    CPubKey pubkey;
+    CKey key2;
+    CPubKey pubkey2;
     std::string strError = "";
-    std::string strMessage = boost::lexical_cast<std::string>(nSporkID) + boost::lexical_cast<std::string>(nValue) + boost::lexical_cast<std::string>(nTimeSigned);
+    std::string strMessage = boost::lexical_cast<std::string>(spork.nSporkID) + boost::lexical_cast<std::string>(spork.nValue) + boost::lexical_cast<std::string>(spork.nTimeSigned);
 
-    if(!CMessageSigner::GetKeysFromSecret(strSignKey, key, pubkey)) {
-        LogPrintf("CSporkMessage::Sign -- GetKeysFromSecret() failed, invalid spork key %s\n", strSignKey);
+    if(!CMessageSigner::GetKeysFromSecret(strSignKey, key2, pubkey2)) {
+        LogPrintf("CSporkMessage::Sign -- GetKeysFromSecret() failed, invalid spork key %s\n", strMessage);
         return false;
     }
 
-    if(!CMessageSigner::SignMessage(strMessage, vchSig, key)) {
+    if(!CMessageSigner::SignMessage(strMessage, spork.vchSig, key)) {
         LogPrintf("CSporkMessage::Sign -- SignMessage() failed\n");
         return false;
     }
 
-    if(!CMessageSigner::VerifyMessage(pubkey, vchSig, strMessage, strError)) {
-        LogPrintf("CSporkMessage::Sign -- VerifyMessage() failed, error: %s\n", strError);
+    if(!CMessageSigner::VerifyMessage(pubkey, spork.vchSig, strMessage, strError)) {
+        LogPrintf("CSporkMessage::Sign -- VerifyMessage() failed, error: %s\n", strMessage);
         return false;
     }
 
     return true;
 }
 
-bool CSporkMessage::CheckSignature()
+bool CSporkMessage::CheckSignature(CSporkMessage& spork)
 {
     //note: need to investigate why this is failing
     std::string strError = "";
-    std::string strMessage = boost::lexical_cast<std::string>(nSporkID) + boost::lexical_cast<std::string>(nValue) + boost::lexical_cast<std::string>(nTimeSigned);
+    std::string strMessage = boost::lexical_cast<std::string>(spork.nSporkID) + boost::lexical_cast<std::string>(spork.nValue) + boost::lexical_cast<std::string>(spork.nTimeSigned);
     CPubKey pubkey(ParseHex(Params().SporkPubKey()));
 
-    if(!CMessageSigner::VerifyMessage(pubkey, vchSig, strMessage, strError)) {
+    if(!CMessageSigner::VerifyMessage(pubkey, spork.vchSig, strMessage, strError)) {
         LogPrintf("CSporkMessage::CheckSignature -- VerifyMessage() failed, error: %s\n", strError);
         return false;
     }
