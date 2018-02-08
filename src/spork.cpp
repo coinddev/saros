@@ -6,7 +6,14 @@
 #include "validation.h"
 #include "messagesigner.h"
 #include "net_processing.h"
+
+#include "darksend.h"
+#include "main.h"
+
 #include "spork.h"
+
+
+
 
 #include <boost/lexical_cast.hpp>
 
@@ -17,12 +24,13 @@ CSporkManager sporkManager;
 
 std::map<uint256, CSporkMessage> mapSporks;
 
-void CSporkManager::ProcessSpork(CNode* pfrom, std::string& strCommand, CDataStream& vRecv, CConnman& connman)
+void CSporkManager::ProcessSpork(CNode* pfrom, std::string& strCommand, CDataStream& vRecv)
 {
-    if(fLiteMode) return; // disable all Saros specific functionality
+    if(fLiteMode) return; // disable all Dash specific functionality
 
     if (strCommand == NetMsgType::SPORK) {
 
+        CDataStream vMsg(vRecv);
         CSporkMessage spork;
         vRecv >> spork;
 
@@ -55,7 +63,7 @@ void CSporkManager::ProcessSpork(CNode* pfrom, std::string& strCommand, CDataStr
 
         mapSporks[hash] = spork;
         mapSporksActive[spork.nSporkID] = spork;
-        spork.Relay(connman);
+        spork.Relay();
 
         //does a task if needed
         ExecuteSpork(spork.nSporkID, spork.nValue);
@@ -65,7 +73,7 @@ void CSporkManager::ProcessSpork(CNode* pfrom, std::string& strCommand, CDataStr
         std::map<int, CSporkMessage>::iterator it = mapSporksActive.begin();
 
         while(it != mapSporksActive.end()) {
-            connman.PushMessage(pfrom, NetMsgType::SPORK, it->second);
+            pfrom->PushMessage(NetMsgType::SPORK, it->second);
             it++;
         }
     }
@@ -101,13 +109,13 @@ void CSporkManager::ExecuteSpork(int nSporkID, int nValue)
     }
 }
 
-bool CSporkManager::UpdateSpork(int nSporkID, int64_t nValue, CConnman& connman)
+bool CSporkManager::UpdateSpork(int nSporkID, int64_t nValue)
 {
 
-    CSporkMessage spork = CSporkMessage(nSporkID, nValue, GetAdjustedTime());
+    CSporkMessage spork = CSporkMessage(nSporkID, nValue, GetTime());
 
     if(spork.Sign(strMasterPrivKey)) {
-        spork.Relay(connman);
+        spork.Relay();
         mapSporks[spork.GetHash()] = spork;
         mapSporksActive[nSporkID] = spork;
         return true;
@@ -141,7 +149,7 @@ bool CSporkManager::IsSporkActive(int nSporkID)
         }
     }
 
-    return r < GetAdjustedTime();
+    return r < GetTime();
 }
 
 // grab the value of the spork on the network, or the default
@@ -203,53 +211,53 @@ std::string CSporkManager::GetSporkNameByID(int nSporkID)
 
 bool CSporkManager::SetPrivKey(std::string strPrivKey)
 {
-    CSporkMessage msg;
-    //CSporkMessage spork;
-    strMasterPrivKey = strPrivKey;
-    Sign(msg);
-    //spork.Sign(strPrivKey);
-    if(CheckSignature(msg)){
+    CSporkMessage spork;
+
+    spork.Sign(strPrivKey);
+
+    if(spork.CheckSignature()){
         // Test signing successful, proceed
         LogPrintf("CSporkManager::SetPrivKey -- Successfully initialized as spork signer\n");
+        strMasterPrivKey = strPrivKey;
         return true;
     } else {
         return false;
     }
 }
 
-bool CSporkMessage::Sign(CSporkMessage& spork)
+bool CSporkMessage::Sign(std::string strSignKey)
 {
-    CKey key2;
-    CPubKey pubkey2;
+    CKey key;
+    CPubKey pubkey;
     std::string strError = "";
-    std::string strMessage = boost::lexical_cast<std::string>(spork.nSporkID) + boost::lexical_cast<std::string>(spork.nValue) + boost::lexical_cast<std::string>(spork.nTimeSigned);
+    std::string strMessage = boost::lexical_cast<std::string>(nSporkID) + boost::lexical_cast<std::string>(nValue) + boost::lexical_cast<std::string>(nTimeSigned);
 
-    if(!CMessageSigner::GetKeysFromSecret(strSignKey, key2, pubkey2)) {
-        LogPrintf("CSporkMessage::Sign -- GetKeysFromSecret() failed, invalid spork key %s\n", strMessage);
+    if(!darkSendSigner.GetKeysFromSecret(strSignKey, key, pubkey)) {
+        LogPrintf("CSporkMessage::Sign -- GetKeysFromSecret() failed, invalid spork key %s\n", strSignKey);
         return false;
     }
 
-    if(!CMessageSigner::SignMessage(strMessage, spork.vchSig, key2)) {
+    if(!darkSendSigner.SignMessage(strMessage, vchSig, key)) {
         LogPrintf("CSporkMessage::Sign -- SignMessage() failed\n");
         return false;
     }
 
-    if(!CMessageSigner::VerifyMessage(pubkey, spork.vchSig, strMessage, strError)) {
-        LogPrintf("CSporkMessage::Sign -- VerifyMessage() failed, error: %s\n", strMessage);
+    if(!darkSendSigner.VerifyMessage(pubkey, vchSig, strMessage, strError)) {
+        LogPrintf("CSporkMessage::Sign -- VerifyMessage() failed, error: %s\n", strError);
         return false;
     }
 
     return true;
 }
 
-bool CSporkMessage::CheckSignature(CSporkMessage& spork)
+bool CSporkMessage::CheckSignature()
 {
     //note: need to investigate why this is failing
     std::string strError = "";
-    std::string strMessage = boost::lexical_cast<std::string>(spork.nSporkID) + boost::lexical_cast<std::string>(spork.nValue) + boost::lexical_cast<std::string>(spork.nTimeSigned);
+    std::string strMessage = boost::lexical_cast<std::string>(nSporkID) + boost::lexical_cast<std::string>(nValue) + boost::lexical_cast<std::string>(nTimeSigned);
     CPubKey pubkey(ParseHex(Params().SporkPubKey()));
 
-    if(!CMessageSigner::VerifyMessage(pubkey, spork.vchSig, strMessage, strError)) {
+    if(!darkSendSigner.VerifyMessage(pubkey, vchSig, strMessage, strError)) {
         LogPrintf("CSporkMessage::CheckSignature -- VerifyMessage() failed, error: %s\n", strError);
         return false;
     }
@@ -257,8 +265,8 @@ bool CSporkMessage::CheckSignature(CSporkMessage& spork)
     return true;
 }
 
-void CSporkMessage::Relay(CConnman& connman)
+void CSporkMessage::Relay()
 {
     CInv inv(MSG_SPORK, GetHash());
-    connman.RelayInv(inv);
+    RelayInv(inv);
 }
