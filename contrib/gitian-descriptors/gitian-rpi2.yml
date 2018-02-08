@@ -1,5 +1,5 @@
 ---
-name: "saros-raspberry-1.0.0.1"
+name: "saros-raspberry-0.12"
 enable_cache: true
 suites:
 - "precise"

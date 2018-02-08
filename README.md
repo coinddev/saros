@@ -1,7 +1,7 @@
-Saros Core staging tree 0.12.1
+Saros Core staging tree 0.12.2
 ===============================
 
-`master:` [![Build Status](https://travis-ci.org/sarospay/saros.svg?branch=master)](https://travis-ci.org/sarospay/saros) `v0.12.0.x:` [![Build Status](https://travis-ci.org/sarospay/saros.svg?branch=v0.12.0.x)](https://travis-ci.org/sarospay/saros/branches) `v0.12.1.x:` [![Build Status](https://travis-ci.org/sarospay/saros.svg?branch=v0.12.1.x)](https://travis-ci.org/sarospay/saros/branches)
+`master:` [![Build Status](https://travis-ci.org/sarospay/saros.svg?branch=master)](https://travis-ci.org/sarospay/saros) `develop:` [![Build Status](https://travis-ci.org/sarospay/saros.svg?branch=develop)](https://travis-ci.org/sarospay/saros/branches)
 
 https://www.saros.org
 

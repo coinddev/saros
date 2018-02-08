@@ -73,7 +73,7 @@ public:
     CMainParams() {
         strNetworkID = "main";
         consensus.nSubsidyHalvingInterval = 525600; // Note: actual number of blocks per calendar year with DGW v3 is ~200700 (for example 449750 - 249050)
-        consensus.nMasternodePaymentsStartBlock = 100; // not true, but it's ok as long as it's less then nMasternodePaymentsIncreaseBlock
+        consensus.nMasternodePaymentsStartBlock = 100000; // not true, but it's ok as long as it's less then nMasternodePaymentsIncreaseBlock
         consensus.nMasternodePaymentsIncreaseBlock = 158000; // actual historical value
         consensus.nMasternodePaymentsIncreasePeriod = 576*30; // 17280 - actual historical value
         consensus.nInstantSendKeepLock = 24;
@@ -93,9 +93,11 @@ public:
         consensus.BIP34Hash = uint256S("0x001");
         consensus.powLimit = uint256S("00000fffff000000000000000000000000000000000000000000000000000000");
         consensus.nPowTargetTimespan = 60 * 60; // Saros: 1 day
-        consensus.nPowTargetSpacing = 1 * 60; // Saros: 1 minutes
+        consensus.nPowTargetSpacing = 1 * 60; // Saros: 2.5 minutes
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
+        consensus.nPowKGWHeight = -1;
+        consensus.nPowDGWHeight = -1;
         consensus.nRuleChangeActivationThreshold = 1916; // 95% of 2016
         consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
@@ -115,36 +117,33 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_DIP0001].nThreshold = 3226; // 80% of 4032
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000b000b0"); // 10
+        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000b000b0"); // 782700
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000045607b2420ed3a47e3869673cc6b19df00a142a29d144f2218fe7bcb9be"); // 10
+        consensus.defaultAssumeValid = uint256S("0x0000045607b2420ed3a47e3869673cc6b19df00a142a29d144f2218fe7bcb9be"); // 782700
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
          * a large 32-bit integer with any alignment.
          */
-        pchMessageStart[0] = 0x73;
-        pchMessageStart[1] = 0x61;
-        pchMessageStart[2] = 0x72;
-        pchMessageStart[3] = 0x6f;
-        vAlertPubKey = ParseHex("045e714c0958459a3ce9ea9040542c801c92c39afbd9875731a3d94f22a812a2041481f4c4b9f59ff1781c553085eaf772ed536a8cbeea1519059fdc97dfe5ad3d");
-        nDefaultPort = 8992;
-        nMaxTipAge = 6 * 60 * 60; // ~144 blocks behind -> 2 x fork detection time, was 24 * 60 * 60 in bitcoin
-        nDelayGetHeadersTime = 24 * 60 * 60;
-        nPruneAfterHeight = 100000;
+         pchMessageStart[0] = 0x73;
+         pchMessageStart[1] = 0x61;
+         pchMessageStart[2] = 0x72;
+         pchMessageStart[3] = 0x6f;
+         vAlertPubKey = ParseHex("045e714c0958459a3ce9ea9040542c801c92c39afbd9875731a3d94f22a812a2041481f4c4b9f59ff1781c553085eaf772ed536a8cbeea1519059fdc97dfe5ad3d");
+         nDefaultPort = 8992;
+         nMaxTipAge = 6 * 60 * 60; // ~144 blocks behind -> 2 x fork detection time, was 24 * 60 * 60 in bitcoin
+         nDelayGetHeadersTime = 24 * 60 * 60;
+         nPruneAfterHeight = 100000;
 
-        genesis = CreateGenesisBlock(1515677258, 976169, 0x1e0ffff0, 1, 50 * COIN);
-        consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x00000ffdd7c4bd151a05b2b669a4981ac80a00b71cabb402b4f61ad5aed873d5"));
-        assert(genesis.hashMerkleRoot == uint256S("0x4d0ccc69c94736988fcbbedb45d7b8db037acf0e9fa5796d3199f595979e0e6e"));
+         genesis = CreateGenesisBlock(1515677258, 976169, 0x1e0ffff0, 1, 50 * COIN);
+         consensus.hashGenesisBlock = genesis.GetHash();
+         assert(consensus.hashGenesisBlock == uint256S("0x00000ffdd7c4bd151a05b2b669a4981ac80a00b71cabb402b4f61ad5aed873d5"));
+         assert(genesis.hashMerkleRoot == uint256S("0x4d0ccc69c94736988fcbbedb45d7b8db037acf0e9fa5796d3199f595979e0e6e"));
 
-        //vFixedSeeds.clear();
-        //vSeeds.clear();
+
         vSeeds.push_back(CDNSSeedData("saros.network", "dnsseed.saros.network"));
-
-
         // Saros addresses start with 'S'
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,63);
         // Saros script addresses start with '7'
@@ -168,7 +167,7 @@ public:
         fTestnetToBeDeprecatedFieldRPC = false;
 
         nPoolMaxTransactions = 3;
-        nFulfilledRequestExpireTime = 1 * 60 * 60; // fulfilled requests expire in 1 hour
+        nFulfilledRequestExpireTime = 60*60; // fulfilled requests expire in 1 hour
         strSporkPubKey = "04c1989282128680bc694ba36f15f0b09ee880782b3ff3de64b699a4499cbfd9d7e2d32ffe58f3cfeb5e5831906cefe2ed50d6fcdabb18c3a844235ab62e7a77d2";
 
         checkpointData = (CCheckpointData) {
@@ -178,7 +177,7 @@ public:
             1515681930, // * UNIX timestamp of last checkpoint block
             0,       // * total number of transactions between genesis and last checkpoint
                         //   (the tx=... number in the SetBestChain debug.log lines)
-            2800        // * estimated number of transactions per day after checkpoint
+            2800       // * estimated number of transactions per day after checkpoint
         };
     }
 };
@@ -199,7 +198,7 @@ public:
         consensus.nBudgetPaymentsStartBlock = 4100;
         consensus.nBudgetPaymentsCycleBlocks = 50;
         consensus.nBudgetPaymentsWindowBlocks = 10;
-        consensus.nBudgetProposalEstablishingTime = 60 * 20;
+        consensus.nBudgetProposalEstablishingTime = 60*20;
         consensus.nSuperblockStartBlock = 4200; // NOTE: Should satisfy nSuperblockStartBlock > nBudgetPeymentsStartBlock
         consensus.nSuperblockCycle = 24; // Superblocks can be issued hourly on testnet
         consensus.nGovernanceMinQuorum = 1;
@@ -215,6 +214,8 @@ public:
         consensus.nPowTargetSpacing = 2.5 * 60; // Saros: 2.5 minutes
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = false;
+        consensus.nPowKGWHeight = 4001; // nPowKGWHeight >= nPowDGWHeight means "no KGW"
+        consensus.nPowDGWHeight = 4001;
         consensus.nRuleChangeActivationThreshold = 1512; // 75% for testchains
         consensus.nMinerConfirmationWindow = 2016; // nPowTargetTimespan / nPowTargetSpacing
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
@@ -234,10 +235,10 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_DIP0001].nThreshold = 50; // 50% of 100
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000000000000003cd72a542"); //4000
+        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000000000000003cd72a542"); // 37900
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x00000ce22113f3eb8636e225d6a1691e132fdd587aed993e1bc9b07a0235eea4"); //4000
+        consensus.defaultAssumeValid = uint256S("0x00000ce22113f3eb8636e225d6a1691e132fdd587aed993e1bc9b07a0235eea4"); // 37900
 
         pchMessageStart[0] = 0x79;
         pchMessageStart[1] = 0x76;
@@ -257,7 +258,6 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
         vSeeds.push_back(CDNSSeedData("saros.network", "testnet.dnsseed.saros.network"));
-
 
         // Testnet Saros addresses start with 'y'
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,140);
@@ -282,7 +282,7 @@ public:
         fTestnetToBeDeprecatedFieldRPC = true;
 
         nPoolMaxTransactions = 3;
-        nFulfilledRequestExpireTime = 5 * 60; // fulfilled requests expire in 5 minutes
+        nFulfilledRequestExpireTime = 5*60; // fulfilled requests expire in 5 minutes
         strSporkPubKey = "0497de3baba74a72532625504d20920fbc5190bdf9a9c1922b6eddfb2040bab3fb1ab28fc23c940909b5cc4df92dd637fbfa101126d586958f6b26fbe81ddbc516";
 
         checkpointData = (CCheckpointData) {
@@ -291,7 +291,7 @@ public:
             1515677259, // * UNIX timestamp of last checkpoint block
             0,       // * total number of transactions between genesis and last checkpoint
                         //   (the tx=... number in the SetBestChain debug.log lines)
-            500         // * estimated number of transactions per day after checkpoint
+            500        // * estimated number of transactions per day after checkpoint
         };
 
     }
@@ -329,6 +329,8 @@ public:
         consensus.nPowTargetSpacing = 2.5 * 60; // Saros: 2.5 minutes
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = true;
+        consensus.nPowKGWHeight = 15200; // same as mainnet
+        consensus.nPowDGWHeight = 34140; // same as mainnet
         consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
         consensus.nMinerConfirmationWindow = 144; // Faster than normal for regtest (144 instead of 2016)
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
@@ -342,10 +344,10 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_DIP0001].nTimeout = 999999999999ULL;
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0");
+        consensus.nMinimumChainWork = uint256S("0x00");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0");
+        consensus.defaultAssumeValid = uint256S("0x00");
 
         pchMessageStart[0] = 0xfc;
         pchMessageStart[1] = 0xc1;
@@ -370,7 +372,7 @@ public:
         fMineBlocksOnDemand = true;
         fTestnetToBeDeprecatedFieldRPC = false;
 
-        nFulfilledRequestExpireTime = 5 * 60; // fulfilled requests expire in 5 minutes
+        nFulfilledRequestExpireTime = 5*60; // fulfilled requests expire in 5 minutes
 
         checkpointData = (CCheckpointData){
             boost::assign::map_list_of

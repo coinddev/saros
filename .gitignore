@@ -82,7 +82,7 @@ libconftest.dylib*
 *.qm
 Makefile
 saros-qt
-Dash-Qt.app
+Saros-Qt.app
 
 # Unit-tests
 Makefile.test

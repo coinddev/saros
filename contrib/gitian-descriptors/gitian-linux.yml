@@ -1,5 +1,5 @@
 ---
-name: "saros-linux-1.0.0.1"
+name: "saros-linux-0.12"
 enable_cache: true
 suites:
 - "trusty"
