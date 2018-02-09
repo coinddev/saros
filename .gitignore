@@ -118,7 +118,7 @@ share/BitcoindComparisonTool.jar
 
 !depends/Makefile
 !src/leveldb*/Makefile
-!src/secp256k1/build-aux/m4/*.*
+!src/secp256k1/build-aux/m4/*
 
 .cproject
 .project
