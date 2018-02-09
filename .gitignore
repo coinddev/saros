@@ -116,7 +116,9 @@ qa/tmp
 cache/
 share/BitcoindComparisonTool.jar
 
+!depends/Makefile
 !src/leveldb*/Makefile
+!src/secp256k1/build-aux/m4/*.*
 
 .cproject
 .project
